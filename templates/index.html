@@ -32,6 +32,16 @@
                     <td>{{ data.realized_pnl }}</td>
                 </tr>
             {% endfor %}
+            <tr>
+                <td>Total</td>
+                <td></td>
+                <td></td>
+                <td>{{ summary.total_evaluation_cost }}</td>
+                <td></td>
+                <td>{{ summary.total_unrealized_pnl }}</td>
+                <td></td>
+                <td>{{ summary.total_realized_pnl }}</td>
+            </tr>
         </tbody>
     </table>
 </body>

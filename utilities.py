@@ -205,6 +205,18 @@ def all_pairs_results():
     return results
 
 
+def calculate_summary(results):
+
+    total_evaluation_cost = sum([value['evaluation_cost'] for value in results.values()])
+    total_unrealized_pnl = sum([value['unrealized_pnl'] for value in results.values()])
+    total_realized_pnl = sum([value['realized_pnl'] for value in results.values()])
+
+    return {
+        "total_evaluation_cost": total_evaluation_cost,
+        "total_unrealized_pnl": total_unrealized_pnl,
+        "total_realized_pnl": total_realized_pnl
+    }
+
 ############################################################################################################
 
 
