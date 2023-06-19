@@ -154,7 +154,7 @@ def evaluate_pnl(pair, assets, trades):
 
     if onhand_amount:
         unrealized_pnl = (current_price - avg_price) * onhand_amount
-        evaluation_cost = avg_price * onhand_amount
+        evaluation_cost = current_price * onhand_amount
         unrealized_pnl_rate = (unrealized_pnl / evaluation_cost) * 100
     else:
         avg_price = 0
