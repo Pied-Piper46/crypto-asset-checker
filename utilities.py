@@ -90,6 +90,15 @@ def get_onhand_amount(pair, assets):
             return float(item.get("onhand_amount"))
 
 
+def get_jpy_onhand_amount(assets):
+
+    symbol = 'jpy'
+
+    for item in assets['data']['assets']:
+        if item.get("asset") == symbol:
+            return float(item.get("onhand_amount"))
+
+
 def get_trade_history(pair):
 
     trades = []
@@ -154,7 +163,7 @@ def evaluate_pnl(pair, assets, trades):
         unrealized_pnl_rate = 0
 
     return {
-        "pair": pair,
+        "symbol": pair.split('_')[0],
         "onhand_amount": onhand_amount,
         "current_price": current_price,
         "evaluation_cost": evaluation_cost,
@@ -172,6 +181,20 @@ def all_pairs_results():
     jpy_pairs = ['btc_jpy', 'eth_jpy', 'xrp_jpy', 'bcc_jpy'] # For simplicity, only those transactions that have occurred in the past are extracted.
     assets = get_assets()
 
+    # add jpy data
+    jpy_onhand_amount = get_jpy_onhand_amount(assets)
+    results['jpy'] = {
+        "symbol": 'jpy',
+        "onhand_amount": jpy_onhand_amount,
+        "current_price": 0,
+        "evaluation_cost": jpy_onhand_amount,
+        "avg_price": 0,
+        "unrealized_pnl": 0,
+        "unrealized_pnl_rate": 0,
+        "realized_pnl": 0
+    }
+
+    # results of crypto trades
     for pair in jpy_pairs:
         trades = get_trade_history(pair)
 
