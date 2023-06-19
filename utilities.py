@@ -211,9 +211,14 @@ def calculate_summary(results):
     total_unrealized_pnl = sum([value['unrealized_pnl'] for value in results.values()])
     total_realized_pnl = sum([value['realized_pnl'] for value in results.values()])
 
+    # calculate total_unrealized_pnl_rate
+    total_investment = total_evaluation_cost - results['jpy']['evaluation_cost']
+    total_unrealized_pnl_rate = total_unrealized_pnl / total_investment * 100
+
     return {
         "total_evaluation_cost": total_evaluation_cost,
         "total_unrealized_pnl": total_unrealized_pnl,
+        "total_unrealized_pnl_rate": total_unrealized_pnl_rate,
         "total_realized_pnl": total_realized_pnl
     }
 
