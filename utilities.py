@@ -154,7 +154,7 @@ def evaluate_pnl(pair, assets, trades):
 
     if onhand_amount:
         unrealized_pnl = (current_price - avg_price) * onhand_amount
-        evaluation_cost = avg_price * onhand_amount
+        evaluation_cost = current_price * onhand_amount
         unrealized_pnl_rate = (unrealized_pnl / evaluation_cost) * 100
     else:
         avg_price = 0
@@ -204,6 +204,23 @@ def all_pairs_results():
 
     return results
 
+
+def calculate_summary(results):
+
+    total_evaluation_cost = sum([value['evaluation_cost'] for value in results.values()])
+    total_unrealized_pnl = sum([value['unrealized_pnl'] for value in results.values()])
+    total_realized_pnl = sum([value['realized_pnl'] for value in results.values()])
+
+    # calculate total_unrealized_pnl_rate
+    total_investment = total_evaluation_cost - results['jpy']['evaluation_cost']
+    total_unrealized_pnl_rate = total_unrealized_pnl / total_investment * 100
+
+    return {
+        "total_evaluation_cost": total_evaluation_cost,
+        "total_unrealized_pnl": total_unrealized_pnl,
+        "total_unrealized_pnl_rate": total_unrealized_pnl_rate,
+        "total_realized_pnl": total_realized_pnl
+    }
 
 ############################################################################################################
 
