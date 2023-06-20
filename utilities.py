@@ -8,6 +8,7 @@ import urllib.parse
 import ccxt
 from pprint import pprint
 
+
 def get_secrets(secret_file):
 
     if os.path.exists(secret_file):
@@ -99,6 +100,108 @@ def get_jpy_onhand_amount(assets):
             return float(item.get("onhand_amount"))
 
 
+def get_deposit_history(symbol):
+
+    deposits = []
+    since = None
+
+    endpoint = "/v1/user/deposit_history"
+    params = {
+        "asset": symbol,
+    }
+
+    # Pagination
+    while True:
+        if since is not None:
+            params['since'] = since
+
+        nonce = str(int(time.time() * 1000))
+        headers = {
+            'Content-Type': 'application/json',
+            'ACCESS-KEY': API_KEY,
+            'ACCESS-NONCE': nonce,
+            'ACCESS-SIGNATURE': get_signature(API_SECRET, nonce, endpoint, params=params, method='GET')
+        }
+        
+        response = requests.get('https://api.bitbank.cc' + endpoint, headers=headers, params=params).json()
+        new_deposits = response['data']['deposits']
+        new_deposits.sort(key=lambda x: x['confirmed_at'], reverse=False)
+        if not new_deposits:
+            break
+
+        since = int(new_deposits[-1]['confirmed_at']) + 1
+        deposits += new_deposits
+        time.sleep(bitbank.rateLimit / 1000)
+
+    return deposits
+
+
+def standardize_deposit_hitory(deposits):
+
+    standardized_data = []
+    
+    for deposit in deposits:
+        standardized_deposit = {}
+        standardized_deposit['type'] = 'deposit'
+        standardized_deposit['timestamp'] = deposit.get('confirmed_at')
+        standardized_deposit['amount'] = deposit.get('amount')
+        standardized_deposit['price'] = None
+        standardized_data.append(standardized_deposit)
+
+    return standardized_data
+
+
+def get_withdrawal_history(symbol):
+
+    withdrawals = []
+    since = None
+
+    endpoint = "/v1/user/withdrawal_history"
+    params = {
+        "asset": symbol,
+    }
+
+    # Pagination
+    while True:
+        if since is not None:
+            params['since'] = since
+
+        nonce = str(int(time.time() * 1000))
+        headers = {
+            'Content-Type': 'application/json',
+            'ACCESS-KEY': API_KEY,
+            'ACCESS-NONCE': nonce,
+            'ACCESS-SIGNATURE': get_signature(API_SECRET, nonce, endpoint, params=params, method='GET')
+        }
+        
+        response = requests.get('https://api.bitbank.cc' + endpoint, headers=headers, params=params).json()
+        new_withdrawals = response['data']['withdrawals']
+        new_withdrawals.sort(key=lambda x: x['requested_at'], reverse=False)
+        if not new_withdrawals:
+            break
+
+        since = int(new_withdrawals[-1]['requested_at']) + 1
+        withdrawals += new_withdrawals
+        time.sleep(bitbank.rateLimit / 1000)
+
+    return withdrawals
+
+
+def standardize_withdrawal_hitory(withdrawals):
+
+    standardized_data = []
+    
+    for withdrawal in withdrawals:
+        standardized_withdrawal = {}
+        standardized_withdrawal['type'] = 'withdraw'
+        standardized_withdrawal['timestamp'] = withdrawal.get('requested_at')
+        standardized_withdrawal['amount'] = withdrawal.get('amount')
+        standardized_withdrawal['price'] = None
+        standardized_data.append(standardized_withdrawal)
+
+    return standardized_data
+
+
 def get_trade_history(pair):
 
     trades = []
@@ -116,6 +219,29 @@ def get_trade_history(pair):
     return trades
 
 
+def standardize_trade_hitory(trades):
+
+    standardized_data = []
+    
+    for trade in trades:
+        standardized_trade = {}
+        standardized_trade['type'] = trade.get('side')
+        standardized_trade['timestamp'] = trade.get('timestamp')
+        standardized_trade['amount'] = trade.get('amount')
+        standardized_trade['price'] = trade.get('price')
+        standardized_data.append(standardized_trade)
+
+    return standardized_data
+
+
+def merge_all_history(deposit_history, withdrawal_history, trade_history):
+
+    all_history = deposit_history + withdrawal_history + trade_history
+    sorted_history = sorted(all_history, key=lambda x: x['timestamp'])
+
+    return sorted_history
+
+
 def calculate_avgcost_and_pnl(pair, trades):
 
     total_amount = 0.0000
@@ -127,7 +253,7 @@ def calculate_avgcost_and_pnl(pair, trades):
         if trade['side'] == 'buy':
             total_amount += trade['amount']
             total_amount = round(total_amount, 4)
-            total_cost += trade['cost']
+            total_cost += trade['amount'] * trade['price']
             total_cost = round(total_cost, 4)
             avg_cost = total_cost / total_amount
 
@@ -222,76 +348,12 @@ def calculate_summary(results):
         "total_realized_pnl": total_realized_pnl
     }
 
-############################################################################################################
 
-
-def get_deposits(symbol):
-
-    deposits = []
-    since = None
-
-    endpoint = "/v1/user/deposit_history"
-    params = {
-        "asset": symbol,
-    }
-
-    # Pagination
-    while True:
-        if since is not None:
-            params['since'] = since
-
-        nonce = str(int(time.time() * 1000))
-        headers = {
-            'Content-Type': 'application/json',
-            'ACCESS-KEY': API_KEY,
-            'ACCESS-NONCE': nonce,
-            'ACCESS-SIGNATURE': get_signature(API_SECRET, nonce, endpoint, params=params, method='GET')
-        }
-        
-        response = requests.get('https://api.bitbank.cc' + endpoint, headers=headers, params=params).json()
-        new_deposits = response['data']['deposits']
-        new_deposits.sort(key=lambda x: x['confirmed_at'], reverse=False)
-        if not new_deposits:
-            break
-
-        since = int(new_deposits[-1]['confirmed_at']) + 1
-        deposits += new_deposits
-        time.sleep(bitbank.rateLimit / 1000)
-
-    return deposits
-
-
-def get_withdrawals(symbol):
-
-    withdrawals = []
-    since = None
-
-    endpoint = "/v1/user/withdrawal_history"
-    params = {
-        "asset": symbol,
-    }
-
-    # Pagination
-    while True:
-        if since is not None:
-            params['since'] = since
-
-        nonce = str(int(time.time() * 1000))
-        headers = {
-            'Content-Type': 'application/json',
-            'ACCESS-KEY': API_KEY,
-            'ACCESS-NONCE': nonce,
-            'ACCESS-SIGNATURE': get_signature(API_SECRET, nonce, endpoint, params=params, method='GET')
-        }
-        
-        response = requests.get('https://api.bitbank.cc' + endpoint, headers=headers, params=params).json()
-        new_withdrawals = response['data']['withdrawals']
-        new_withdrawals.sort(key=lambda x: x['requested_at'], reverse=False)
-        if not new_withdrawals:
-            break
-
-        since = int(new_withdrawals[-1]['requested_at']) + 1
-        withdrawals += new_withdrawals
-        time.sleep(bitbank.rateLimit / 1000)
-
-    return withdrawals
+deposits = get_deposit_history('bcc')
+standardized_deposits = standardize_deposit_hitory(deposits)
+withdrawals = get_withdrawal_history('bcc')
+standardized_withdrawals = standardize_withdrawal_hitory(withdrawals)
+trades = get_trade_history('bcc_jpy')
+standardized_trades = standardize_trade_hitory(trades)
+merged_history = merge_all_history(standardized_deposits, standardized_withdrawals, standardized_trades)
+pprint(merged_history)
