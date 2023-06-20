@@ -219,7 +219,7 @@ def get_trade_history(pair):
     return trades
 
 
-def standardize_trade_hitory(trades):
+def standardize_trade_history(trades):
 
     standardized_data = []
     
@@ -242,41 +242,41 @@ def merge_all_history(deposit_history, withdrawal_history, trade_history):
     return sorted_history
 
 
-def calculate_avgcost_and_pnl(pair, trades):
+def calculate_avgcost_and_pnl(transactions):
 
-    total_amount = 0.0000
-    total_cost = 0.0000
-    pnl = 0.0
-    avg_cost = 0.0
+    purchased_amount = 0
+    total_cost = 0
+    pnl = 0
+    avg_cost = 0
 
-    for trade in trades:
-        if trade['side'] == 'buy':
-            total_amount += trade['amount']
-            total_amount = round(total_amount, 4)
-            total_cost += trade['amount'] * trade['price']
-            total_cost = round(total_cost, 4)
-            avg_cost = total_cost / total_amount
+    for transaction in transactions:
+        if transaction['type'] == 'buy':
+            purchased_amount += transaction['amount']
+            total_cost += transaction['amount'] * transaction['price']
+            avg_cost = total_cost / purchased_amount
+            # print(purchased_amount)
+            # print(avg_cost)
 
-        elif trade['side'] == 'sell':
-            if total_amount < trade['amount']:
-                pnl += (trade['price'] - avg_cost) * total_amount
-                total_amount = 0.0000
+        elif transaction['type'] == 'sell':
+            if transaction['amount'] > purchased_amount:
+                pnl += (transaction['price'] - avg_cost) * purchased_amount
+                purchased_amount = 0
+                total_cost = 0
 
             else:
-                pnl += (trade['price'] - avg_cost) * trade['amount']
-                total_amount -= trade['amount']
-                total_amount = round(total_amount, 4)
-                total_cost = total_amount * avg_cost
-                total_cost = round(total_cost, 4)
+                pnl += (transaction['price'] - avg_cost) * transaction['amount']
+                purchased_amount -= transaction['amount']
+                total_cost = purchased_amount * avg_cost
+                # print(total_cost)
             
     return avg_cost, pnl
 
 
-def evaluate_pnl(pair, assets, trades):
+def evaluate_pnl(pair, assets, transactions):
 
     current_price = get_current_price(pair)
     onhand_amount = get_onhand_amount(pair, assets)
-    avg_price, realized_pnl = calculate_avgcost_and_pnl(pair, trades)
+    avg_price, realized_pnl = calculate_avgcost_and_pnl(transactions)
 
     if onhand_amount:
         unrealized_pnl = (current_price - avg_price) * onhand_amount
@@ -323,9 +323,10 @@ def all_pairs_results():
     # results of crypto trades
     for pair in jpy_pairs:
         trades = get_trade_history(pair)
+        standardized_trades = standardize_trade_history(trades)
 
-        if trades:
-            result_json = evaluate_pnl(pair, assets, trades)
+        if standardized_trades:
+            result_json = evaluate_pnl(pair, assets, standardized_trades)
             results[pair] = result_json
 
     return results
@@ -347,13 +348,3 @@ def calculate_summary(results):
         "total_unrealized_pnl_rate": total_unrealized_pnl_rate,
         "total_realized_pnl": total_realized_pnl
     }
-
-
-deposits = get_deposit_history('bcc')
-standardized_deposits = standardize_deposit_hitory(deposits)
-withdrawals = get_withdrawal_history('bcc')
-standardized_withdrawals = standardize_withdrawal_hitory(withdrawals)
-trades = get_trade_history('bcc_jpy')
-standardized_trades = standardize_trade_hitory(trades)
-merged_history = merge_all_history(standardized_deposits, standardized_withdrawals, standardized_trades)
-pprint(merged_history)
