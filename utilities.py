@@ -202,6 +202,14 @@ def standardize_withdrawal_hitory(withdrawals):
     return standardized_data
 
 
+def calculate_net_investment_amount(deposit_history, withdrawal_history):
+
+    total_deposits = sum([float(item['amount']) for item in deposit_history])
+    total_withdrawals = sum([float(item['amount']) for item in withdrawal_history])
+
+    return total_deposits - total_withdrawals
+
+
 def get_trade_history(pair):
 
     trades = []
@@ -307,11 +315,15 @@ def all_pairs_results():
     jpy_pairs = ['btc_jpy', 'eth_jpy', 'xrp_jpy', 'bcc_jpy'] # For simplicity, only those transactions that have occurred in the past are extracted.
     assets = get_assets()
 
-    # add jpy data
+    # get jpy data
     jpy_onhand_amount = get_jpy_onhand_amount(assets)
+    jpy_deposit = get_deposit_history('jpy')
+    jpy_withdrawal = get_withdrawal_history('jpy')
+    jpy_net_investment = calculate_net_investment_amount(jpy_deposit, jpy_withdrawal)
     results['jpy'] = {
         "symbol": 'jpy',
         "onhand_amount": jpy_onhand_amount,
+        "net_investment": jpy_net_investment,
         "current_price": 0,
         "evaluation_cost": jpy_onhand_amount,
         "avg_price": 0,
@@ -320,7 +332,7 @@ def all_pairs_results():
         "realized_pnl": 0
     }
 
-    # results of crypto trades
+    # get results of crypto trades
     for pair in jpy_pairs:
         trades = get_trade_history(pair)
         standardized_trades = standardize_trade_history(trades)
@@ -348,3 +360,8 @@ def calculate_summary(results):
         "total_unrealized_pnl_rate": total_unrealized_pnl_rate,
         "total_realized_pnl": total_realized_pnl
     }
+
+
+# deposits = get_deposit_history('xrp')
+# withdrawals = get_withdrawal_history('xrp')
+# print(calculate_net_investment_amount(deposits, withdrawals))
