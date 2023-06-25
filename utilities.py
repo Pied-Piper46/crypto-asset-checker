@@ -8,6 +8,7 @@ import urllib.parse
 import ccxt
 from pprint import pprint
 
+
 def get_secrets(secret_file):
 
     if os.path.exists(secret_file):
@@ -81,151 +82,14 @@ def get_assets():
     return response
 
 
-def get_onhand_amount(pair, assets):
-
-    symbol = pair.split('_')[0]
+def get_onhand_amount(symbol, assets):
 
     for item in assets['data']['assets']:
         if item.get("asset") == symbol:
             return float(item.get("onhand_amount"))
 
 
-def get_jpy_onhand_amount(assets):
-
-    symbol = 'jpy'
-
-    for item in assets['data']['assets']:
-        if item.get("asset") == symbol:
-            return float(item.get("onhand_amount"))
-
-
-def get_trade_history(pair):
-
-    trades = []
-    since = None
-
-    # Pagination
-    while True:
-        new_trades = bitbank.fetch_my_trades(symbol=pair, since=since)
-        if not new_trades:
-            break
-        since = new_trades[-1]['timestamp'] + 1
-        trades += new_trades
-        time.sleep(bitbank.rateLimit / 1000)
-
-    return trades
-
-
-def calculate_avgcost_and_pnl(pair, trades):
-
-    total_amount = 0.0000
-    total_cost = 0.0000
-    pnl = 0.0
-    avg_cost = 0.0
-
-    for trade in trades:
-        if trade['side'] == 'buy':
-            total_amount += trade['amount']
-            total_amount = round(total_amount, 4)
-            total_cost += trade['cost']
-            total_cost = round(total_cost, 4)
-            avg_cost = total_cost / total_amount
-
-        elif trade['side'] == 'sell':
-            if total_amount < trade['amount']:
-                pnl += (trade['price'] - avg_cost) * total_amount
-                total_amount = 0.0000
-
-            else:
-                pnl += (trade['price'] - avg_cost) * trade['amount']
-                total_amount -= trade['amount']
-                total_amount = round(total_amount, 4)
-                total_cost = total_amount * avg_cost
-                total_cost = round(total_cost, 4)
-            
-    return avg_cost, pnl
-
-
-def evaluate_pnl(pair, assets, trades):
-
-    current_price = get_current_price(pair)
-    onhand_amount = get_onhand_amount(pair, assets)
-    avg_price, realized_pnl = calculate_avgcost_and_pnl(pair, trades)
-
-    if onhand_amount:
-        unrealized_pnl = (current_price - avg_price) * onhand_amount
-        evaluation_cost = current_price * onhand_amount
-        unrealized_pnl_rate = (unrealized_pnl / evaluation_cost) * 100
-    else:
-        avg_price = 0
-        evaluation_cost = 0
-        unrealized_pnl = 0
-        unrealized_pnl_rate = 0
-
-    return {
-        "symbol": pair.split('_')[0],
-        "onhand_amount": onhand_amount,
-        "current_price": current_price,
-        "evaluation_cost": evaluation_cost,
-        "avg_price": avg_price,
-        "unrealized_pnl": unrealized_pnl,
-        "unrealized_pnl_rate": unrealized_pnl_rate,
-        "realized_pnl": realized_pnl
-    }
-
-
-def all_pairs_results():
-    
-    results = {}
-    # jpy_pairs = get_jpy_pairs()
-    jpy_pairs = ['btc_jpy', 'eth_jpy', 'xrp_jpy', 'bcc_jpy'] # For simplicity, only those transactions that have occurred in the past are extracted.
-    assets = get_assets()
-
-    # add jpy data
-    jpy_onhand_amount = get_jpy_onhand_amount(assets)
-    results['jpy'] = {
-        "symbol": 'jpy',
-        "onhand_amount": jpy_onhand_amount,
-        "current_price": 0,
-        "evaluation_cost": jpy_onhand_amount,
-        "avg_price": 0,
-        "unrealized_pnl": 0,
-        "unrealized_pnl_rate": 0,
-        "realized_pnl": 0
-    }
-
-    # results of crypto trades
-    for pair in jpy_pairs:
-        trades = get_trade_history(pair)
-
-        if trades:
-            result_json = evaluate_pnl(pair, assets, trades)
-            results[pair] = result_json
-
-    return results
-
-
-def calculate_summary(results):
-
-    total_evaluation_cost = sum([value['evaluation_cost'] for value in results.values()])
-    total_unrealized_pnl = sum([value['unrealized_pnl'] for value in results.values()])
-    total_realized_pnl = sum([value['realized_pnl'] for value in results.values()])
-
-    # calculate total_unrealized_pnl_rate
-    total_investment = total_evaluation_cost - results['jpy']['evaluation_cost']
-    total_unrealized_pnl_rate = total_unrealized_pnl / total_investment * 100
-
-    return {
-        "total_evaluation_cost": total_evaluation_cost,
-        "total_unrealized_pnl": total_unrealized_pnl,
-        "total_unrealized_pnl_rate": total_unrealized_pnl_rate,
-        "total_realized_pnl": total_realized_pnl
-    }
-
-############################################################################################################
-
-
-def get_deposits(symbol):
+def get_deposit_history(symbol):
 
     deposits = []
     since = None
@@ -261,7 +125,22 @@ def get_deposits(symbol):
     return deposits
 
 
-def get_withdrawals(symbol):
+def standardize_deposit_hitory(deposits):
+
+    standardized_data = []
+    
+    for deposit in deposits:
+        standardized_deposit = {}
+        standardized_deposit['type'] = 'deposit'
+        standardized_deposit['timestamp'] = deposit.get('confirmed_at')
+        standardized_deposit['amount'] = deposit.get('amount')
+        standardized_deposit['price'] = None
+        standardized_data.append(standardized_deposit)
+
+    return standardized_data
+
+
+def get_withdrawal_history(symbol):
 
     withdrawals = []
     since = None
@@ -295,3 +174,183 @@ def get_withdrawals(symbol):
         time.sleep(bitbank.rateLimit / 1000)
 
     return withdrawals
+
+
+def standardize_withdrawal_hitory(withdrawals):
+
+    standardized_data = []
+    
+    for withdrawal in withdrawals:
+        standardized_withdrawal = {}
+        standardized_withdrawal['type'] = 'withdraw'
+        standardized_withdrawal['timestamp'] = withdrawal.get('requested_at')
+        standardized_withdrawal['amount'] = withdrawal.get('amount')
+        standardized_withdrawal['price'] = None
+        standardized_data.append(standardized_withdrawal)
+
+    return standardized_data
+
+
+def calculate_net_investment(symbol):
+
+    deposits = get_deposit_history(symbol)
+    withdrawals = get_withdrawal_history(symbol)
+    total_deposits = sum([float(deposit['amount']) for deposit in deposits])
+    total_withdrawals = sum([float(withdrawal['amount']) for withdrawal in withdrawals])
+
+    return total_deposits - total_withdrawals
+
+
+def get_trade_history(pair):
+
+    trades = []
+    since = None
+
+    # Pagination
+    while True:
+        new_trades = bitbank.fetch_my_trades(symbol=pair, since=since)
+        if not new_trades:
+            break
+        since = new_trades[-1]['timestamp'] + 1
+        trades += new_trades
+        time.sleep(bitbank.rateLimit / 1000)
+
+    return trades
+
+
+def standardize_trade_history(trades):
+
+    standardized_data = []
+    
+    for trade in trades:
+        standardized_trade = {}
+        standardized_trade['type'] = trade.get('side')
+        standardized_trade['timestamp'] = trade.get('timestamp')
+        standardized_trade['amount'] = trade.get('amount')
+        standardized_trade['price'] = trade.get('price')
+        standardized_data.append(standardized_trade)
+
+    return standardized_data
+
+
+def merge_all_history(standardized_deposits, standardized_withdrawals, standardized_trades):
+
+    all_history = standardized_deposits + standardized_withdrawals + standardized_trades
+    sorted_history = sorted(all_history, key=lambda x: x['timestamp'])
+
+    return sorted_history
+
+
+def calculate_avgcost_and_pnl(transactions):
+
+    purchased_amount = 0
+    total_cost = 0
+    pnl = 0
+    avg_cost = 0
+
+    for transaction in transactions:
+        if transaction['type'] == 'buy':
+            purchased_amount += transaction['amount']
+            total_cost += transaction['amount'] * transaction['price']
+            avg_cost = total_cost / purchased_amount
+            # print(purchased_amount)
+            # print(avg_cost)
+
+        elif transaction['type'] == 'sell':
+            if transaction['amount'] > purchased_amount:
+                pnl += (transaction['price'] - avg_cost) * purchased_amount
+                purchased_amount = 0
+                total_cost = 0
+
+            else:
+                pnl += (transaction['price'] - avg_cost) * transaction['amount']
+                purchased_amount -= transaction['amount']
+                total_cost = purchased_amount * avg_cost
+                # print(total_cost)
+            
+    return avg_cost, pnl
+
+
+def evaluate_trade(pair, assets, transactions):
+
+    symbol = pair.split('_')[0]
+    current_price = get_current_price(pair)
+    onhand_amount = get_onhand_amount(symbol, assets)
+    avg_price, realized_pnl = calculate_avgcost_and_pnl(transactions)
+
+    if onhand_amount:
+        unrealized_pnl = (current_price - avg_price) * onhand_amount
+        evaluation_cost = current_price * onhand_amount
+        unrealized_pnl_rate = (unrealized_pnl / evaluation_cost) * 100
+    else:
+        avg_price = 0
+        evaluation_cost = 0
+        unrealized_pnl = 0
+        unrealized_pnl_rate = 0
+
+    return {
+        "symbol": symbol,
+        "onhand_amount": onhand_amount,
+        "current_price": current_price,
+        "evaluation_cost": evaluation_cost,
+        "avg_price": avg_price,
+        "unrealized_pnl": unrealized_pnl,
+        "unrealized_pnl_rate": unrealized_pnl_rate,
+        "realized_pnl": realized_pnl
+    }
+
+
+def all_pairs_results():
+    
+    results = {}
+    # jpy_pairs = get_jpy_pairs()
+    jpy_pairs = ['btc_jpy', 'eth_jpy', 'xrp_jpy', 'bcc_jpy'] # For simplicity, only those transactions that have occurred in the past are extracted.
+    assets = get_assets()
+
+    # get jpy data
+    jpy_onhand_amount = get_onhand_amount('jpy', assets)
+    jpy_net_investment = calculate_net_investment('jpy')
+    results['jpy'] = {
+        "symbol": 'jpy',
+        "onhand_amount": jpy_onhand_amount,
+        "net_investment": jpy_net_investment,
+        "current_price": 0,
+        "evaluation_cost": jpy_onhand_amount,
+        "avg_price": 0,
+        "unrealized_pnl": 0,
+        "unrealized_pnl_rate": 0,
+        "realized_pnl": 0
+    }
+
+    # get results of crypto trades
+    for pair in jpy_pairs:
+        symbol = pair.split('_')[0]
+
+        trades = get_trade_history(pair)
+        standardized_trades = standardize_trade_history(trades)
+        if standardized_trades:
+            result_json = evaluate_trade(pair, assets, standardized_trades)
+            results[pair] = result_json
+
+        net_investment = calculate_net_investment(symbol)
+        results[pair]['net_investment'] = net_investment
+
+    return results
+
+
+def calculate_summary(results):
+
+    total_evaluation_cost = sum([value['evaluation_cost'] for value in results.values()])
+    total_unrealized_pnl = sum([value['unrealized_pnl'] for value in results.values()])
+    total_realized_pnl = sum([value['realized_pnl'] for value in results.values()])
+
+    # calculate total_unrealized_pnl_rate
+    total_investment = total_evaluation_cost - results['jpy']['evaluation_cost']
+    total_unrealized_pnl_rate = total_unrealized_pnl / total_investment * 100
+
+    return {
+        "total_evaluation_cost": total_evaluation_cost,
+        "total_unrealized_pnl": total_unrealized_pnl,
+        "total_unrealized_pnl_rate": total_unrealized_pnl_rate,
+        "total_realized_pnl": total_realized_pnl
+    }

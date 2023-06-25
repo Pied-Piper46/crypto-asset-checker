@@ -10,6 +10,7 @@
         <thead>
             <tr>
                 <th>銘柄</th>
+                <th>純投資額</th>
                 <th>資産残高</th>
                 <th>現在価格</th>
                 <th>評価額</th>
@@ -23,6 +24,7 @@
             {% for pair, data in results.items() %}
                 <tr>
                     <td>{{ data.symbol }}</td>
+                    <td>{{ data.net_investment }}</td>
                     <td>{{ data.onhand_amount }}</td>
                     <td>{{ data.current_price }}</td>
                     <td>{{ data.evaluation_cost }}</td>
@@ -34,6 +36,7 @@
             {% endfor %}
             <tr>
                 <td>Total</td>
+                <td></td>
                 <td></td>
                 <td></td>
                 <td>{{ summary.total_evaluation_cost }}</td>
