@@ -82,18 +82,7 @@ def get_assets():
     return response
 
 
-def get_onhand_amount(pair, assets):
-
-    symbol = pair.split('_')[0]
-
-    for item in assets['data']['assets']:
-        if item.get("asset") == symbol:
-            return float(item.get("onhand_amount"))
-
-
-def get_jpy_onhand_amount(assets):
-
-    symbol = 'jpy'
+def get_onhand_amount(symbol, assets):
 
     for item in assets['data']['assets']:
         if item.get("asset") == symbol:
@@ -202,10 +191,12 @@ def standardize_withdrawal_hitory(withdrawals):
     return standardized_data
 
 
-def calculate_net_investment_amount(deposit_history, withdrawal_history):
+def calculate_net_investment(symbol):
 
-    total_deposits = sum([float(item['amount']) for item in deposit_history])
-    total_withdrawals = sum([float(item['amount']) for item in withdrawal_history])
+    deposits = get_deposit_history(symbol)
+    withdrawals = get_withdrawal_history(symbol)
+    total_deposits = sum([float(deposit['amount']) for deposit in deposits])
+    total_withdrawals = sum([float(withdrawal['amount']) for withdrawal in withdrawals])
 
     return total_deposits - total_withdrawals
 
@@ -242,9 +233,9 @@ def standardize_trade_history(trades):
     return standardized_data
 
 
-def merge_all_history(deposit_history, withdrawal_history, trade_history):
+def merge_all_history(standardized_deposits, standardized_withdrawals, standardized_trades):
 
-    all_history = deposit_history + withdrawal_history + trade_history
+    all_history = standardized_deposits + standardized_withdrawals + standardized_trades
     sorted_history = sorted(all_history, key=lambda x: x['timestamp'])
 
     return sorted_history
@@ -280,10 +271,11 @@ def calculate_avgcost_and_pnl(transactions):
     return avg_cost, pnl
 
 
-def evaluate_pnl(pair, assets, transactions):
+def evaluate_trade(pair, assets, transactions):
 
+    symbol = pair.split('_')[0]
     current_price = get_current_price(pair)
-    onhand_amount = get_onhand_amount(pair, assets)
+    onhand_amount = get_onhand_amount(symbol, assets)
     avg_price, realized_pnl = calculate_avgcost_and_pnl(transactions)
 
     if onhand_amount:
@@ -297,7 +289,7 @@ def evaluate_pnl(pair, assets, transactions):
         unrealized_pnl_rate = 0
 
     return {
-        "symbol": pair.split('_')[0],
+        "symbol": symbol,
         "onhand_amount": onhand_amount,
         "current_price": current_price,
         "evaluation_cost": evaluation_cost,
@@ -316,10 +308,8 @@ def all_pairs_results():
     assets = get_assets()
 
     # get jpy data
-    jpy_onhand_amount = get_jpy_onhand_amount(assets)
-    jpy_deposit = get_deposit_history('jpy')
-    jpy_withdrawal = get_withdrawal_history('jpy')
-    jpy_net_investment = calculate_net_investment_amount(jpy_deposit, jpy_withdrawal)
+    jpy_onhand_amount = get_onhand_amount('jpy', assets)
+    jpy_net_investment = calculate_net_investment('jpy')
     results['jpy'] = {
         "symbol": 'jpy',
         "onhand_amount": jpy_onhand_amount,
@@ -334,12 +324,16 @@ def all_pairs_results():
 
     # get results of crypto trades
     for pair in jpy_pairs:
+        symbol = pair.split('_')[0]
+
         trades = get_trade_history(pair)
         standardized_trades = standardize_trade_history(trades)
-
         if standardized_trades:
-            result_json = evaluate_pnl(pair, assets, standardized_trades)
+            result_json = evaluate_trade(pair, assets, standardized_trades)
             results[pair] = result_json
+
+        net_investment = calculate_net_investment(symbol)
+        results[pair]['net_investment'] = net_investment
 
     return results
 
@@ -360,8 +354,3 @@ def calculate_summary(results):
         "total_unrealized_pnl_rate": total_unrealized_pnl_rate,
         "total_realized_pnl": total_realized_pnl
     }
-
-
-# deposits = get_deposit_history('xrp')
-# withdrawals = get_withdrawal_history('xrp')
-# print(calculate_net_investment_amount(deposits, withdrawals))
