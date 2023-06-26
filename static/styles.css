@@ -1,14 +1,12 @@
-table {
-    width: 100%;
-    border-collapse: collapse;
+body {
+    font-family: 'Roboto',arial,sans-serif;
+    margin: 30px;
 }
 
-th, td {
-    border: 1px solid #ddd;
-    padding: 8px;
+.foot {
+    background-color: #EFEFEF;
 }
 
-th {
-    background-color: #4CAF50;
-    color: white;
+.bold {
+    font-weight: bold;
 }
