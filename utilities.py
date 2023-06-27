@@ -182,7 +182,7 @@ def standardize_withdrawal_hitory(withdrawals):
     
     for withdrawal in withdrawals:
         standardized_withdrawal = {}
-        standardized_withdrawal['type'] = 'withdraw'
+        standardized_withdrawal['type'] = 'withdrawal'
         standardized_withdrawal['timestamp'] = withdrawal.get('requested_at')
         standardized_withdrawal['amount'] = withdrawal.get('amount')
         standardized_withdrawal['price'] = None

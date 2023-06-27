@@ -1,13 +1,7 @@
-import utilities
-from flask import Flask, render_template
+from flask import Flask
+from controllers.index import index_page
 app = Flask(__name__)
-
-@app.route('/')
-def home():
-    results = utilities.all_pairs_results()
-    summary = utilities.calculate_summary(results)
-
-    return render_template('index.html', results=results, summary=summary)
+app.register_blueprint(index_page, url_prefix='/')
 
 if __name__ == "__main__":
     app.run(debug=True)
