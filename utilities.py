@@ -218,6 +218,19 @@ def get_trade_history(pair):
     return trades
 
 
+def get_all_trade_history():
+
+    results = {}
+    # jpy_pairs = get_jpy_pairs()
+    jpy_pairs = ['btc_jpy', 'eth_jpy', 'xrp_jpy', 'bcc_jpy']
+
+    for pair in jpy_pairs:
+        trades = get_trade_history(pair)
+        results[pair] = trades
+
+    return results
+
+
 def standardize_trade_history(trades):
 
     standardized_data = []
@@ -304,7 +317,7 @@ def all_pairs_results():
     
     results = {}
     # jpy_pairs = get_jpy_pairs()
-    jpy_pairs = ['btc_jpy', 'eth_jpy', 'xrp_jpy', 'bcc_jpy'] # For simplicity, only those transactions that have occurred in the past are extracted.
+    jpy_pairs = ['btc_jpy', 'eth_jpy', 'xrp_jpy', 'bcc_jpy', 'ltc_jpy'] # For simplicity, only those transactions that have occurred in the past are extracted.
     assets = get_assets()
 
     # get jpy data
