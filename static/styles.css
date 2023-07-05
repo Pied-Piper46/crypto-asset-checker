@@ -10,3 +10,20 @@ body {
 .bold {
     font-weight: bold;
 }
+
+.form {
+    text-align: right;
+    margin-right: 60px;
+}
+
+.btn-border {
+    border: 2px solid #000;
+    border-radius: 0;
+    background: #fff;
+}
+  
+.btn-border:hover {
+    color: #fff;
+    background: #000;
+
+}
