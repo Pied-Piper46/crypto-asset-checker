@@ -222,7 +222,7 @@ def get_all_trade_history():
 
     results = {}
     # jpy_pairs = get_jpy_pairs()
-    jpy_pairs = ['btc_jpy', 'eth_jpy', 'xrp_jpy', 'bcc_jpy']
+    jpy_pairs = ['btc_jpy', 'eth_jpy', 'xrp_jpy', 'bcc_jpy', 'ltc_jpy']
 
     for pair in jpy_pairs:
         trades = get_trade_history(pair)
