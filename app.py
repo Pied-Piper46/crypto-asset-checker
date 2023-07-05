@@ -1,13 +1,22 @@
-import utilities
-from flask import Flask, render_template
-app = Flask(__name__)
+from flask import Flask
+from controllers.index import index_page
+from controllers.test import test_page
+from models import db
 
-@app.route('/')
-def home():
-    results = utilities.all_pairs_results()
-    summary = utilities.calculate_summary(results)
+def create_app():
+    app = Flask(__name__)
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
+    app.register_blueprint(index_page)
+    app.register_blueprint(test_page)
 
-    return render_template('index.html', results=results, summary=summary)
+    db.init_app(app)
+
+    with app.app_context():
+        db.create_all()
+
+    return app
+
+app = create_app()
 
 if __name__ == "__main__":
     app.run(debug=True)
