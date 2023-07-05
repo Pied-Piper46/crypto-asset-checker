@@ -195,12 +195,12 @@ def get_all_withdrawal_history():
     return results
 
 
-def calculate_net_investment(symbol):
+def calculate_net_investment(symbol, deposit_history, withdrawal_history):
 
-    deposits = get_deposit_history(symbol)
-    withdrawals = get_withdrawal_history(symbol)
-    total_deposits = sum([float(deposit['amount']) for deposit in deposits])
-    total_withdrawals = sum([float(withdrawal['amount']) for withdrawal in withdrawals])
+    deposits_by_symbol = [deposit for deposit in deposit_history if deposit.symbol == symbol]
+    withdrawals_by_symbol = [withdrawal for withdrawal in withdrawal_history if withdrawal.symbol == symbol]
+    total_deposits = sum([deposit.amount for deposit in deposits_by_symbol])
+    total_withdrawals = sum([withdrawal.amount for withdrawal in withdrawals_by_symbol])
 
     return total_deposits - total_withdrawals
 
@@ -296,7 +296,7 @@ def evaluate_trade(pair, assets, trades):
         pass
 
 
-def trade_results(trades):
+def trade_results(trades, deposit_history, withdrawal_history):
     
     results = {}
     # jpy_pairs = get_jpy_pairs()
@@ -305,7 +305,7 @@ def trade_results(trades):
 
     # get jpy data
     jpy_onhand_amount = get_onhand_amount('jpy', assets)
-    jpy_net_investment = calculate_net_investment('jpy')
+    jpy_net_investment = calculate_net_investment('jpy', deposit_history, withdrawal_history)
     results['jpy'] = {
         "symbol": 'jpy',
         "onhand_amount": jpy_onhand_amount,
@@ -325,7 +325,7 @@ def trade_results(trades):
             results[pair] = result_json
 
             symbol = pair.split('_')[0]
-            net_investment = calculate_net_investment(symbol)
+            net_investment = calculate_net_investment(symbol, deposit_history, withdrawal_history)
             results[pair]['net_investment'] = net_investment
 
     return results
