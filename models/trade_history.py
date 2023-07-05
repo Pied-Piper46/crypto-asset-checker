@@ -10,7 +10,7 @@ class TradeHistory(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     timestamp = db.Column(db.Integer, nullable=False)
     pair = db.Column(db.String(120), nullable=False)
-    trade_type = db.Column(Enum('buy', 'sell'), nullable=False)
+    side = db.Column(Enum('buy', 'sell'), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     price = db.Column(db.Float, nullable=False)
 
@@ -32,7 +32,8 @@ class TradeHistory(db.Model):
                         trade_id=int(trade['id']),
                         user_id=user_id,
                         timestamp=int(trade['timestamp']),
-                        pair=pair, trade_type=trade['side'],
+                        pair=pair,
+                        side=trade['side'],
                         amount=trade['amount'],
                         price=trade['price']
                     )

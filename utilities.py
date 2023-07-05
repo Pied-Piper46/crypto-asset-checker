@@ -231,21 +231,6 @@ def get_all_trade_history():
     return results
 
 
-def standardize_trade_history(trades):
-
-    standardized_data = []
-    
-    for trade in trades:
-        standardized_trade = {}
-        standardized_trade['type'] = trade.get('side')
-        standardized_trade['timestamp'] = trade.get('timestamp')
-        standardized_trade['amount'] = trade.get('amount')
-        standardized_trade['price'] = trade.get('price')
-        standardized_data.append(standardized_trade)
-
-    return standardized_data
-
-
 def merge_all_history(standardized_deposits, standardized_withdrawals, standardized_trades):
 
     all_history = standardized_deposits + standardized_withdrawals + standardized_trades
@@ -254,66 +239,68 @@ def merge_all_history(standardized_deposits, standardized_withdrawals, standardi
     return sorted_history
 
 
-def calculate_avgcost_and_pnl(transactions):
+def calculate_avgcost_and_pnl(trades):
 
     purchased_amount = 0
     total_cost = 0
     pnl = 0
     avg_cost = 0
 
-    for transaction in transactions:
-        if transaction['type'] == 'buy':
-            purchased_amount += transaction['amount']
-            total_cost += transaction['amount'] * transaction['price']
+    for trade in trades:
+        if trade.side == 'buy':
+            purchased_amount += trade.amount
+            total_cost += trade.amount * trade.price
             avg_cost = total_cost / purchased_amount
-            # print(purchased_amount)
-            # print(avg_cost)
 
-        elif transaction['type'] == 'sell':
-            if transaction['amount'] > purchased_amount:
-                pnl += (transaction['price'] - avg_cost) * purchased_amount
+        elif trade.side == 'sell':
+            if trade.amount > purchased_amount:
+                pnl += (trade.price - avg_cost) * purchased_amount
                 purchased_amount = 0
                 total_cost = 0
 
             else:
-                pnl += (transaction['price'] - avg_cost) * transaction['amount']
-                purchased_amount -= transaction['amount']
+                pnl += (trade.price - avg_cost) * trade.amount
+                purchased_amount -= trade.amount
                 total_cost = purchased_amount * avg_cost
-                # print(total_cost)
             
     return avg_cost, pnl
 
 
-def evaluate_trade(pair, assets, transactions):
+def evaluate_trade(pair, assets, trades):
 
     symbol = pair.split('_')[0]
     current_price = get_current_price(pair)
     onhand_amount = get_onhand_amount(symbol, assets)
-    avg_price, realized_pnl = calculate_avgcost_and_pnl(transactions)
+    trades_by_pair = [trade for trade in trades if trade.pair == pair]
 
-    if onhand_amount:
-        unrealized_pnl = (current_price - avg_price) * onhand_amount
-        evaluation_cost = current_price * onhand_amount
-        unrealized_pnl_rate = (unrealized_pnl / evaluation_cost) * 100
+    if trades_by_pair:
+        avg_price, realized_pnl = calculate_avgcost_and_pnl(trades_by_pair)
+
+        if onhand_amount:
+            unrealized_pnl = (current_price - avg_price) * onhand_amount
+            evaluation_cost = current_price * onhand_amount
+            unrealized_pnl_rate = (unrealized_pnl / evaluation_cost) * 100
+        else:
+            avg_price = 0
+            evaluation_cost = 0
+            unrealized_pnl = 0
+            unrealized_pnl_rate = 0
+
+        return {
+            "symbol": symbol,
+            "onhand_amount": onhand_amount,
+            "current_price": current_price,
+            "evaluation_cost": evaluation_cost,
+            "avg_price": avg_price,
+            "unrealized_pnl": unrealized_pnl,
+            "unrealized_pnl_rate": unrealized_pnl_rate,
+            "realized_pnl": realized_pnl
+        }
     else:
-        avg_price = 0
-        evaluation_cost = 0
-        unrealized_pnl = 0
-        unrealized_pnl_rate = 0
-
-    return {
-        "symbol": symbol,
-        "onhand_amount": onhand_amount,
-        "current_price": current_price,
-        "evaluation_cost": evaluation_cost,
-        "avg_price": avg_price,
-        "unrealized_pnl": unrealized_pnl,
-        "unrealized_pnl_rate": unrealized_pnl_rate,
-        "realized_pnl": realized_pnl
-    }
+        pass
 
 
-def all_pairs_results():
+def trade_results(trades):
     
     results = {}
     # jpy_pairs = get_jpy_pairs()
@@ -337,16 +324,13 @@ def all_pairs_results():
 
     # get results of crypto trades
     for pair in jpy_pairs:
-        symbol = pair.split('_')[0]
-
-        trades = get_trade_history(pair)
-        standardized_trades = standardize_trade_history(trades)
-        if standardized_trades:
-            result_json = evaluate_trade(pair, assets, standardized_trades)
+        result_json = evaluate_trade(pair, assets, trades)
+        if result_json:
             results[pair] = result_json
 
-        net_investment = calculate_net_investment(symbol)
-        results[pair]['net_investment'] = net_investment
+            symbol = pair.split('_')[0]
+            net_investment = calculate_net_investment(symbol)
+            results[pair]['net_investment'] = net_investment
 
     return results
 

@@ -7,7 +7,7 @@ test_page = Blueprint("test_page", __name__)
 def test():
     
     # user.User.add_test_user()
-    trade_history.TradeHistory.add_new_trades()
+    # trade_history.TradeHistory.add_new_trades()
     transactions = trade_history.TradeHistory.get_trade_history(1)
 
     return render_template('test.html', transactions=transactions)
