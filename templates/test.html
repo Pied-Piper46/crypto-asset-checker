@@ -1,12 +1,10 @@
 <h2>Trade History</h2>
 <ul>
-    {% for transaction in transactions %}
-        <li>{{ transaction.trade_id }}</li>
-        <li>{{ transaction.user_id }}</li>
-        <li>{{ transaction.timestamp }}</li>
-        <li>{{ transaction.pair }}</li>
-        <li>{{ transaction.side }}</li>
-        <li>{{ transaction.amount }}</li>
-        <li>{{ transaction.price }}</li>
+    {% for withdrawal in withdrawals %}
+        <li>{{ withdrawal.withdrawal_id }}</li>
+        <li>{{ withdrawal.user_id }}</li>
+        <li>{{ withdrawal.timestamp }}</li>
+        <li>{{ withdrawal.symbol }}</li>
+        <li>{{ withdrawal.amount }}</li>
     {% endfor %}
 </ul>

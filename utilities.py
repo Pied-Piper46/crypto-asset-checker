@@ -125,19 +125,21 @@ def get_deposit_history(symbol):
     return deposits
 
 
-def standardize_deposit_hitory(deposits):
+def get_all_deposit_history():
 
-    standardized_data = []
-    
-    for deposit in deposits:
-        standardized_deposit = {}
-        standardized_deposit['type'] = 'deposit'
-        standardized_deposit['timestamp'] = deposit.get('confirmed_at')
-        standardized_deposit['amount'] = deposit.get('amount')
-        standardized_deposit['price'] = None
-        standardized_data.append(standardized_deposit)
+    results = {}
+    # jpy_pairs = get_jpy_pairs()
+    jpy_pairs = ['btc_jpy', 'eth_jpy', 'xrp_jpy', 'bcc_jpy', 'ltc_jpy']
 
-    return standardized_data
+    jpy_deposit_history = get_deposit_history('jpy')
+    results['jpy'] = jpy_deposit_history
+
+    for pair in jpy_pairs:
+        symbol = pair.split('_')[0]
+        deposit_history = get_deposit_history(symbol)
+        results[symbol] = deposit_history
+
+    return results
 
 
 def get_withdrawal_history(symbol):
@@ -176,19 +178,21 @@ def get_withdrawal_history(symbol):
     return withdrawals
 
 
-def standardize_withdrawal_hitory(withdrawals):
-
-    standardized_data = []
+def get_all_withdrawal_history():
     
-    for withdrawal in withdrawals:
-        standardized_withdrawal = {}
-        standardized_withdrawal['type'] = 'withdrawal'
-        standardized_withdrawal['timestamp'] = withdrawal.get('requested_at')
-        standardized_withdrawal['amount'] = withdrawal.get('amount')
-        standardized_withdrawal['price'] = None
-        standardized_data.append(standardized_withdrawal)
+    results = {}
+    # jpy_pairs = get_jpy_pairs()
+    jpy_pairs = ['btc_jpy', 'eth_jpy', 'xrp_jpy', 'bcc_jpy', 'ltc_jpy']
 
-    return standardized_data
+    jpy_withdrawal_history = get_withdrawal_history('jpy')
+    results['jpy'] = jpy_withdrawal_history
+
+    for pair in jpy_pairs:
+        symbol = pair.split('_')[0]
+        withdrawal_history = get_withdrawal_history(symbol)
+        results[symbol] = withdrawal_history
+
+    return results
 
 
 def calculate_net_investment(symbol):
@@ -229,14 +233,6 @@ def get_all_trade_history():
         results[pair] = trades
 
     return results
-
-
-def merge_all_history(standardized_deposits, standardized_withdrawals, standardized_trades):
-
-    all_history = standardized_deposits + standardized_withdrawals + standardized_trades
-    sorted_history = sorted(all_history, key=lambda x: x['timestamp'])
-
-    return sorted_history
 
 
 def calculate_avgcost_and_pnl(trades):

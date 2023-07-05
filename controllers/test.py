@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template
-from models import trade_history, user
+from models import user, trade_history, deposit_history, withdrawal_history
 
 test_page = Blueprint("test_page", __name__)
 
@@ -7,7 +7,7 @@ test_page = Blueprint("test_page", __name__)
 def test():
     
     # user.User.add_test_user()
-    # trade_history.TradeHistory.add_new_trades()
-    transactions = trade_history.TradeHistory.get_trade_history(1)
+    withdrawal_history.WithdrawalHistory.add_new_withdrawals()
+    withdrawals = withdrawal_history.WithdrawalHistory.get_withdrawal_history(1)
 
-    return render_template('test.html', transactions=transactions)
+    return render_template('test.html', withdrawals=withdrawals)

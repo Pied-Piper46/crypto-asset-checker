@@ -15,7 +15,6 @@ class TradeHistory(db.Model):
     price = db.Column(db.Float, nullable=False)
 
     def get_trade_history(user_id):
-
         return TradeHistory.query.filter_by(user_id=user_id).all()
 
     def add_new_trades():
