@@ -8,22 +8,7 @@ import urllib.parse
 import ccxt
 from pprint import pprint
 
-
-def get_secrets(secret_file):
-
-    if os.path.exists(secret_file):
-        with open(secret_file) as f:
-            secrets = json.load(f)
-            return secrets
-
-    else:
-        print(f"{secret_file}が存在しません。プログラムを終了します。")
-
-
-secrets = get_secrets("secrets.json")
-API_KEY = secrets['API_KEY']
-API_SECRET = secrets['API_SECRET']
-
+from config import API_KEY, API_SECRET
 bitbank = ccxt.bitbank({
     'apiKey': API_KEY,
     'secret': API_SECRET
