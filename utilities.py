@@ -66,6 +66,20 @@ def get_current_price(pair):
     return ticker_info['last']
 
 
+def get_tickers_jpy():
+
+    endpoint = "https://public.bitbank.cc/tickers_jpy"
+    response = requests.get(endpoint).json()
+
+    return response['data']
+
+
+def get_current_price_noapi(pair, tickers):
+
+    target_ticker = next(filter(lambda d: d['pair'] == pair, tickers), None)
+    return float(target_ticker['last'])
+
+
 def get_assets():
 
     endpoint = "/v1/user/assets"
@@ -87,6 +101,36 @@ def get_onhand_amount(symbol, assets):
     for item in assets['data']['assets']:
         if item.get("asset") == symbol:
             return float(item.get("onhand_amount"))
+
+
+def get_trade_history(pair):
+
+    trades = []
+    since = None
+
+    # Pagination
+    while True:
+        new_trades = bitbank.fetch_my_trades(symbol=pair, since=since)
+        if not new_trades:
+            break
+        since = new_trades[-1]['timestamp'] + 1
+        trades += new_trades
+        time.sleep(bitbank.rateLimit / 1000)
+
+    return trades
+
+
+def get_all_trade_history():
+
+    results = {}
+    # jpy_pairs = get_jpy_pairs()
+    jpy_pairs = ['btc_jpy', 'eth_jpy', 'xrp_jpy', 'bcc_jpy', 'ltc_jpy']
+
+    for pair in jpy_pairs:
+        trades = get_trade_history(pair)
+        results[pair] = trades
+
+    return results
 
 
 def get_deposit_history(symbol):
@@ -205,36 +249,6 @@ def calculate_net_investment(symbol, deposit_history, withdrawal_history):
     return total_deposits - total_withdrawals
 
 
-def get_trade_history(pair):
-
-    trades = []
-    since = None
-
-    # Pagination
-    while True:
-        new_trades = bitbank.fetch_my_trades(symbol=pair, since=since)
-        if not new_trades:
-            break
-        since = new_trades[-1]['timestamp'] + 1
-        trades += new_trades
-        time.sleep(bitbank.rateLimit / 1000)
-
-    return trades
-
-
-def get_all_trade_history():
-
-    results = {}
-    # jpy_pairs = get_jpy_pairs()
-    jpy_pairs = ['btc_jpy', 'eth_jpy', 'xrp_jpy', 'bcc_jpy', 'ltc_jpy']
-
-    for pair in jpy_pairs:
-        trades = get_trade_history(pair)
-        results[pair] = trades
-
-    return results
-
-
 def calculate_avgcost_and_pnl(trades):
 
     purchased_amount = 0
@@ -262,10 +276,10 @@ def calculate_avgcost_and_pnl(trades):
     return avg_cost, pnl
 
 
-def evaluate_trade(pair, assets, trades):
+def evaluate_trade(pair, assets, tickers, trades):
 
     symbol = pair.split('_')[0]
-    current_price = get_current_price(pair)
+    current_price = get_current_price_noapi(pair, tickers)
     onhand_amount = get_onhand_amount(symbol, assets)
     trades_by_pair = [trade for trade in trades if trade.pair == pair]
 
@@ -302,6 +316,7 @@ def trade_results(trades, deposit_history, withdrawal_history):
     # jpy_pairs = get_jpy_pairs()
     jpy_pairs = ['btc_jpy', 'eth_jpy', 'xrp_jpy', 'bcc_jpy', 'ltc_jpy'] # For simplicity, only those transactions that have occurred in the past are extracted.
     assets = get_assets()
+    tickers = get_tickers_jpy()
 
     # get jpy data
     jpy_onhand_amount = get_onhand_amount('jpy', assets)
@@ -320,7 +335,7 @@ def trade_results(trades, deposit_history, withdrawal_history):
 
     # get results of crypto trades
     for pair in jpy_pairs:
-        result_json = evaluate_trade(pair, assets, trades)
+        result_json = evaluate_trade(pair, assets, tickers, trades)
         if result_json:
             results[pair] = result_json
 
